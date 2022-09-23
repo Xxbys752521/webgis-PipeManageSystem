@@ -1,0 +1,618 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <link href="../Content/bootstrap.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://js.arcgis.com/3.35/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/3.35/esri/css/esri.css">
+    <link rel="stylesheet" href="https://developers.arcgis.com/javascript/3/jsapi/css/esri/dijit/Search/css/Search.css">
+    <link href="../Scripts/layer/skin/layer.css" rel="stylesheet" />
+
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #leftPane {
+            color: #000;
+            width: 300px;
+            padding-bottom: 15px;
+        }
+
+        #map {
+            padding: 0;
+        }
+
+        .details {
+            font-size: 14px;
+            font-weight: 600;
+            padding-bottom: 20px;
+        }
+
+        button {
+            margin: 2px;
+            cursor: pointer;
+        }
+
+        #search {
+            display: block;
+            position: absolute;
+            z-index: 2;
+            top: 20px;
+            left: 74px;
+        }
+    </style>
+    <script src="../Scripts/jquery-1.10.2.js"></script>
+    <script src="../Scripts/layer/layer.js"></script>
+    <script src="https://js.arcgis.com/3.35/"></script>
+    <script src="../Scripts/bootstrap.js"></script>
+
+    <script>
+        var renjingCoent = '<div class="input-group">' +
+          '  <label>工程编号</label>' +
+            '<input type="text" class="form-control" id="gcbh" placeholder="工程编号">' +
+       ' </div>' +
+       ' <div class="input-group">' +
+        '    <label>人井编号</label>' +
+        '    <input type="text" class="form-control" id="rjbh" placeholder="人井编号">' +
+       ' </div>' +
+        '<div class="input-group">' +
+       '     <label>铭牌编码</label>' +
+        '    <input type="text" class="form-control" id="mpbm" placeholder="铭牌编码">' +
+'        </div>' +
+ '       <div class="input-group">' +
+  '          <label>人手井尺寸</label>' +
+   '         <input type="text" class="form-control" id="rsjcc" placeholder="人手井尺寸">' +
+    '    </div>' +
+     '   <div class="input-group">' +
+      '      <label>建设日期</label>' +
+       '     <input type="text" class="form-control" id="jsrq" placeholder="建设日期">' +
+        '</div>' +
+        '<div class="input-group">' +
+         '   <label>建设状态</label>' +
+          '  <input type="text" class="form-control" id="jszt" placeholder="建设状态">' +
+        '</div>' +
+      '  <div class="input-group">' +
+      '      <label>井盖类型</label>' +
+      '      <input type="text" class="form-control" id="jglx" placeholder="井盖类型">' +
+     '   </div>' +
+     '   <div class="input-group">' +
+     '       <label>子孔数量</label>' +
+    '        <input type="text" class="form-control" id="zksl" placeholder="子孔数量">' +
+  '      </div>' +
+ '       <div class="input-group">' +
+'           <label>剩余子孔数量</label>' +
+  '          <input type="text" class="form-control" id="syzksl" placeholder="剩余子孔数量">' +
+   '     </div>';
+        var $layer = layer;
+        var map;
+        require(["dojo/dom",
+                "dojo/_base/array",
+                "dojo/parser",
+                "dojo/query",
+                "dojo/on",
+                "esri/Color",
+                "esri/config",
+                "esri/map",
+                "esri/graphic",
+                "esri/geometry/normalizeUtils",
+                "esri/tasks/GeometryService",
+                "esri/tasks/BufferParameters",
+                "esri/toolbars/draw",
+                "esri/symbols/SimpleMarkerSymbol",
+                "esri/symbols/SimpleLineSymbol",
+                "esri/symbols/SimpleFillSymbol",
+                "esri/symbols/PictureMarkerSymbol",
+                "esri/layers/GraphicsLayer",
+                "esri/InfoTemplate",
+                "esri/tasks/query",
+                 "esri/geometry/geometryEngine",
+                "esri/dijit/OverviewMap",
+                "esri/dijit/Measurement",
+                 "esri/dijit/Search",
+                 "esri/geometry/webMercatorUtils",
+                  "esri/tasks/query",
+                "esri/layers/ArcGISDynamicMapServiceLayer",
+                "esri/layers/FeatureLayer",
+                "esri/dijit/LayerList",
+                "esri/geometry/Point",
+                "esri/geometry/webMercatorUtils",
+                "dijit/layout/BorderContainer",
+                "dijit/layout/ContentPane",
+                "dijit/layout/TabContainer",
+                "dijit/form/Button",
+                "dijit/TitlePane",
+                "dojo/domReady!"
+        ],
+              function (dom, array, parser, query,
+                  on, Color, esriConfig, Map,
+                  Graphic, normalizeUtils, GeometryService,
+                  BufferParameters, Draw,
+                  SimpleMarkerSymbol,
+                  SimpleLineSymbol,
+                  SimpleFillSymbol,
+                  PictureMarkerSymbol,
+                  GraphicsLayer,
+                  InfoTemplate, Query, geometryEngine, OverviewMap, Measurement,
+                   Search, webMercatorUtils, Query, ArcGISDynamicMapServiceLayer,
+                  FeatureLayer,
+                  LayerList,
+                  Point, webMercatorUtils) {
+                  parser.parse();
+
+                  map = new Map("map", {
+                      zoom: 16,
+                       maxZoom: 18,
+                      // minZoom: 8,
+                      center: [120.182506, 35.941785],
+                      logo: false
+                  });
+
+                  var tiledUrl = "https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineCommunity/MapServer";
+
+                  var TiledLayer = new esri.layers.ArcGISTiledMapServiceLayer(tiledUrl);
+
+                  map.addLayer(TiledLayer);
+                  //鹰眼
+                  var overviewMapDijit = new OverviewMap({
+                      map: map,
+                      attachTo: "bottom-left",
+                      visible: true
+                  });
+                  overviewMapDijit.startup();
+                  var measurement = new Measurement({
+                      map: map
+                  }, dom.byId("measurementDiv"));
+                  measurement.startup();
+                  overviewMapDijit.startup();
+                  //初始化feature图层
+                  var guandaoLayer = new FeatureLayer("http://localhost:6080/arcgis/rest/services/guandaoManager/FeatureServer/0",
+                      {
+                          //infoTemplate: new InfoTemplate("管道", "工程编号: ${工程编号}</br>建设状态: ${建设状态}</br>所属运维: ${所属运维}</br>建设日期: ${建设日期}</br>起始编号: ${起始编号}</br>" +
+                          //    "终点编号: ${终点编号}</br>管线长度: ${管线长度}</br>子孔数量: ${子孔数量}</br>剩余子孔数: ${剩余子孔数}</br>管控材质: ${管控材质}"),
+                          outFields: ["*"]
+                      }
+                      );
+                  var renjingLayer = new FeatureLayer("http://localhost:6080/arcgis/rest/services/guandaoManager/FeatureServer/1",
+                      {
+                          //        infoTemplate: new InfoTemplate("人井", "工程编号: ${工程编号}</br>人井编号: ${人井编号}</br>铭牌编码: ${铭牌编码}</br>人手井尺码: ${人手井尺码}<br>建设日期: ${建设日期}</br>" +
+                          //"建设状态: ${建设状态}</br>井盖类型: ${井盖类型}</br>子孔数量: ${子孔数量}</br>剩余子孔数: ${剩余子孔数}"),
+                          outFields: ["*"]
+                      }
+                      );
+                  map.addLayer(guandaoLayer);
+                  map.addLayer(renjingLayer);
+
+                  var search = new Search({
+                      enableButtonMode: false,
+                      enableLabel: true,
+                      enableInfoWindow: true,
+                      showInfoWindowOnSelect: true,
+                      map: map
+                  }, "search");
+                  var sources = search.get("sources");
+                  //var sources = [];
+                  sources.push({
+                      featureLayer: guandaoLayer,
+                      searchFields: ["工程编号"],
+                      displayField: "工程编号",
+                      exactMatch: true,
+                      outFields: ["*"],
+                      name: "管道",
+                      placeholder: "管道",
+                      maxResults: 10,
+                      maxSuggestions: 10,
+                      //Create an InfoTemplate and include three fields
+                      infoTemplate: new InfoTemplate("管道",
+                        "${*}"
+                      ),
+                      enableSuggestions: true,
+                      minCharacters: 10
+                  });
+                  sources.push({
+                      featureLayer: renjingLayer,
+                      searchFields: ["人井编号"],
+                      displayField: "人井编号",
+                      exactMatch: true,
+                      name: "人井",
+                      outFields: ["*"],
+                      placeholder: "人井",
+                      maxResults: 6,
+                      maxSuggestions: 6,
+
+                      //Create an InfoTemplate
+                      //infoTemplate: new InfoTemplate("人井",
+                      //  "Name: ${Name}</br>State: ${State}</br>Party Affiliation: ${Party}</br>Phone No: ${Phone_Number}<br><a href=${Web_Page} target=_blank ;'>Website</a>"
+                      //),
+                      infoTemplate: new InfoTemplate("人井",
+                        "${*}"
+                      ),
+                      enableSuggestions: true,
+                      minCharacters: 0
+                  });
+                  search.set("sources", sources);
+                  //search.startup();
+                  function createToolbar() {
+                      toolbar = new Draw(map);
+                      toolbar.on("draw-end", addToMap);
+                  }
+                  function addToMap(evt) {
+                      var symbol;
+                      toolbar.deactivate();
+                      map.showZoomSlider();
+                      switch (evt.geometry.type) {
+                          case "point":
+                          case "multipoint":
+                              symbol = new SimpleMarkerSymbol();
+                              break;
+                          case "polyline":
+                              symbol = new SimpleLineSymbol();
+                              break;
+                          default:
+                              symbol = new SimpleFillSymbol();
+                              break;
+                      }
+                      var graphic = new Graphic(evt.geometry, symbol);
+                      map.graphics.add(graphic);
+                      if (guandao_temp == 0) {
+                          $layer.open({
+                              btn: ['确定'],
+                              shade: false,
+                              type: 1,
+                              offset: "lt",
+                              area: ['300px', '100%'],
+                              content: $("#guandao"),
+                              end: function () {
+                                  map.graphics.clear();
+                              },
+                              yes: function (index, layero) {
+                                  var newAttributes = {
+                                      "工程编号": $("#gcbh").val(),
+                                      "建设状态": $("#jszt").val(),
+                                      "所属运维": $("#ssyw").val(),
+                                      "建设日期": $("#jsrq").val(),
+                                      "起始编号": $("#qsrjbm").val(),
+                                      "终点编号": $("#zdrjbm").val(),
+                                      "管线长度": $("#gxcd").val(),
+                                      "子孔数量": $("#zksl").val(),
+                                      "剩余子孔数": $("#syzksl").val(),
+                                      "管控材质": $("#gkcz").val(),
+                                  }
+                                  var newGraphic = new Graphic(evt.geometry, null, newAttributes);
+                                  //applyEdits(adds?, updates?, deletes?, callback?, errback?)
+                                  guandaoLayer.applyEdits([newGraphic], null, null);
+                                  layer.close(index)
+                              }
+                          });
+                      } else {
+                          $layer.open({
+                              btn: ['确定'],
+                              shade: false,
+                              type: 1,
+                              offset: "lt",
+                              area: ['300px', '100%'],
+                              content: $("#renjing"),
+                              end: function () {
+                                  map.graphics.clear();
+                              },
+                              yes: function (index, layero) {
+                                  var newAttributes = {
+                                      "工程编号": $("#gcbh_1").val(),
+                                      "人井编号": $("#rjbh_1").val(),
+                                      "铭牌编码": $("#mpbm_1").val(),
+                                      "人手井尺码": $("#rsjcc_1").val(),
+                                      "建设日期": $("#jsrq_1").val(),
+                                      "建设状态": $("#jszt_1").val(),
+                                      "井盖类型": $("#jglx_1").val(),
+                                      "子孔数量": $("#zksl_1").val(),
+                                      "剩余子孔数": $("#syzksl_1").val(),
+                                  };
+                                  var newGraphic = new Graphic(evt.geometry, null, newAttributes);
+                                  //applyEdits(adds?, updates?, deletes?, callback?, errback?)
+                                  renjingLayer.applyEdits([newGraphic], null, null);
+                                  layer.close(index)
+                              }
+                          });
+                      }
+
+                  }
+                  //添加管线操作
+                  var guandao_temp = 0;
+                  on(dom.byId("query1"), "click", function () {
+                      clearguandap()
+                      guandao_temp = 0;
+                      toolbar.activate(Draw["POLYLINE"]);
+                      map.hideZoomSlider();
+                  })
+                  //添加人井操作
+                  on(dom.byId("query2"), "click", function () {
+                      clearrenjing();
+                      guandao_temp = 1;
+                      toolbar.activate(Draw["POINT"]);
+                      map.hideZoomSlider();
+                  })
+                  //删除
+                  var guandaoClick = null;
+                  on(dom.byId("query3"), "click", function () {
+                      guandaoClick = guandaoLayer.on("click", det_guandao);
+                  })
+
+                  var renjingClick = null;
+                  on(dom.byId("query4"), "click", function () {
+                      renjingClick = renjingLayer.on("click", det_renjing);
+                  })
+                  var renjingChakanClick = null;
+                  on(dom.byId("query6"), "click", function () {
+                      renjingChakanClick = renjingLayer.on("click", chakan_renjing);
+                  })
+                  var guandaoChakanClick = null;
+                  on(dom.byId("query5"), "click", function () {
+                      guandaoChakanClick = guandaoLayer.on("click", chakan_guandao);
+                  })
+                  map.on("load", createToolbar);
+                  function det_guandao(e) {
+                      var mapPoint = e.graphic.attributes;
+                      $("#gcbh").val(mapPoint["工程编号"]);
+                      $("#jszt").val(mapPoint["建设状态"]);
+                      $("#ssyw").val(mapPoint["所属运维"]);
+                      $("#jsrq").val(mapPoint["建设日期"]);
+                      $("#qsrjbm").val(mapPoint["起始编号"]);
+                      $("#zdrjbm").val(mapPoint["终点编号"]);
+                      $("#gxcd").val(mapPoint["管线长度"]);
+                      $("#zksl").val(mapPoint["子孔数量"]);
+                      $("#syzksl").val(mapPoint["剩余子孔数"]);
+                      $("#gkcz").val(mapPoint["管控材质"]);
+
+                      $layer.open({
+                          btn: ['删除'],
+                          shade: false,
+                          type: 1,
+                          offset: "lt",
+                          area: ['300px', '100%'],
+                          content: $("#guandao"),
+                          end: function () {
+                              map.graphics.clear();
+                          },
+                          yes: function (index, layero) {
+                              guandaoLayer.applyEdits(null, null, [e.graphic]);
+                              guandaoClick.remove();
+                              layer.close(index)
+                          }
+                      });
+                  }
+                  function det_renjing(e) {
+                      var mapPoint = e.graphic.attributes;
+                      $("#gcbh_1").val(mapPoint["工程编号"]);
+                      $("#rjbh_1").val(mapPoint["人井编号"]);
+                      $("#mpbm_1").val(mapPoint["铭牌编码"]);
+                      $("#rsjcc_1").val(mapPoint["人手井尺码"]);
+                      $("#jsrq_1").val(mapPoint["建设日期"]);
+                      $("#jszt_1").val(mapPoint["建设状态"]);
+                      $("#jglx_1").val(mapPoint["井盖类型"]);
+                      $("#zksl_1").val(mapPoint["子孔数量"]);
+                      $("#syzksl_1").val(mapPoint["剩余子孔数"]);
+
+                      $layer.open({
+                          btn: ['删除'],
+                          shade: false,
+                          type: 1,
+                          offset: "lt",
+                          area: ['300px', '100%'],
+                          content: $("#renjing"),
+                          end: function () {
+                              map.graphics.clear();
+                          },
+                          yes: function (index, layero) {
+                              renjingLayer.applyEdits(null, null, [e.graphic]);
+                              renjingClick.remove();
+                              layer.close(index)
+                          }
+                      });
+                  }
+                  function chakan_guandao(e) {
+                      var mapPoint = e.graphic.attributes;
+                      $("#gcbh").val(mapPoint["工程编号"]);
+                      $("#jszt").val(mapPoint["建设状态"]);
+                      $("#ssyw").val(mapPoint["所属运维"]);
+                      $("#jsrq").val(mapPoint["建设日期"]);
+                      $("#qsrjbm").val(mapPoint["起始编号"]);
+                      $("#zdrjbm").val(mapPoint["终点编号"]);
+                      $("#gxcd").val(mapPoint["管线长度"]);
+                      $("#zksl").val(mapPoint["子孔数量"]);
+                      $("#syzksl").val(mapPoint["剩余子孔数"]);
+                      $("#gkcz").val(mapPoint["管控材质"]);
+
+                      $layer.open({
+                          btn: ['确定'],
+                          shade: false,
+                          type: 1,
+                          offset: "lt",
+                          area: ['300px', '100%'],
+                          content: $("#guandao"),
+                          end: function () {
+                              map.graphics.clear();
+                          },
+                          yes: function (index, layero) {
+                              guandaoChakanClick.remove();
+                              layer.close(index)
+                          }
+                      });
+                  }
+                  function chakan_renjing(e) {
+                      var mapPoint = e.graphic.attributes;
+                      $("#gcbh_1").val(mapPoint["工程编号"]);
+                      $("#rjbh_1").val(mapPoint["人井编号"]);
+                      $("#mpbm_1").val(mapPoint["铭牌编码"]);
+                      $("#rsjcc_1").val(mapPoint["人手井尺码"]);
+                      $("#jsrq_1").val(mapPoint["建设日期"]);
+                      $("#jszt_1").val(mapPoint["建设状态"]);
+                      $("#jglx_1").val(mapPoint["井盖类型"]);
+                      $("#zksl_1").val(mapPoint["子孔数量"]);
+                      $("#syzksl_1").val(mapPoint["剩余子孔数"]);
+
+                      $layer.open({
+                          btn: ['确定'],
+                          shade: false,
+                          type: 1,
+                          offset: "lt",
+                          area: ['300px', '100%'],
+                          content: $("#renjing"),
+                          end: function () {
+                              map.graphics.clear();
+                          },
+                          yes: function (index, layero) {
+                             
+                              renjingChakanClick.remove();
+                              layer.close(index)
+                          }
+                      });
+                  }
+                  //清空管道内容
+                  function clearguandap() {
+                      $("#gcbh").val("");
+                      $("#jszt").val("");
+                      $("#ssyw").val("");
+                      $("#jsrq").val("");
+                      $("#qsrjbm").val("");
+                      $("#zdrjbm").val("");
+                      $("#gxcd").val("");
+                      $("#zksl").val("");
+                      $("#syzksl").val("");
+                      $("#gkcz").val("");
+                  }
+                  //清空人井内容
+                  function clearrenjing() {
+                      $("#gcbh_1").val("");
+                      $("#rjbh_1").val("");
+                      $("#mpbm_1").val("");
+                      $("#rsjcc_1").val("");
+                      $("#jsrq_1").val("");
+                      $("#jszt_1").val("");
+                      $("#jglx_1").val("");
+                      $("#zksl_1").val("");
+                      $("#syzksl_1").val("");
+                  }
+              });
+
+
+    </script>
+
+</head>
+
+<body class="claro">
+    <div id="renjing" style="display:none;margin-left: 25px;">
+        <div class="input-group">
+            <label>工程编号</label>
+            <input type="text" class="form-control" id="gcbh_1" placeholder="工程编号">
+        </div>
+        <div class="input-group">
+            <label>人井编号</label>
+            <input type="text" class="form-control" id="rjbh_1" placeholder="人井编号">
+        </div>
+        <div class="input-group">
+            <label>铭牌编码</label>
+            <input type="text" class="form-control" id="mpbm_1" placeholder="铭牌编码">
+        </div>
+        <div class="input-group">
+            <label>人手井尺寸</label>
+            <input type="text" class="form-control" id="rsjcc_1" placeholder="人手井尺寸">
+        </div>
+        <div class="input-group">
+            <label>建设日期</label>
+            <input type="text" class="form-control" id="jsrq_1" placeholder="建设日期">
+        </div>
+        <div class="input-group">
+            <label>建设状态</label>
+            <input type="text" class="form-control" id="jszt_1" placeholder="建设状态">
+        </div>
+        <div class="input-group">
+            <label>井盖类型</label>
+            <input type="text" class="form-control" id="jglx_1" placeholder="井盖类型">
+        </div>
+        <div class="input-group">
+            <label>子孔数量</label>
+            <input type="text" class="form-control" id="zksl_1" placeholder="子孔数量">
+        </div>
+        <div class="input-group">
+            <label>剩余子孔数量</label>
+            <input type="text" class="form-control" id="syzksl_1" placeholder="剩余子孔数量">
+        </div>
+    </div>
+    <div id="guandao" style="display:none;margin-left: 25px;">
+        <div class="input-group">
+            <label>工程编号</label>
+            <input type="text" class="form-control" id="gcbh" placeholder="工程编号">
+        </div>
+        <div class="input-group">
+            <label>建设状态</label>
+            <input type="text" class="form-control" id="jszt" placeholder="建设状态">
+        </div>
+        <div class="input-group">
+            <label>所属运维</label>
+            <input type="text" class="form-control" id="ssyw" placeholder="所属运维">
+        </div>
+        <div class="input-group">
+            <label>建设日期</label>
+            <input type="text" class="form-control" id="jsrq" placeholder="建设日期">
+        </div>
+        <div class="input-group">
+            <label>起始人井编码</label>
+            <input type="text" class="form-control" id="qsrjbm" placeholder="起始人井编码">
+        </div>
+        <div class="input-group">
+            <label>终点人井编码</label>
+            <input type="text" class="form-control" id="zdrjbm" placeholder="终点人井编码">
+        </div>
+        <div class="input-group">
+            <label>管线长度</label>
+            <input type="text" class="form-control" id="gxcd" placeholder="管线长度">
+        </div>
+        <div class="input-group">
+            <label>子孔数量</label>
+            <input type="text" class="form-control" id="zksl" placeholder="子孔数量">
+        </div>
+        <div class="input-group">
+            <label>剩余子孔数量</label>
+            <input type="text" class="form-control" id="syzksl" placeholder="剩余子孔数量">
+        </div>
+        <div class="input-group">
+            <label>管孔材质</label>
+            <input type="text" class="form-control" id="gkcz" placeholder="管孔材质">
+        </div>
+    </div>
+    <div id="search"></div>
+    <div id="map"
+         data-dojo-type="dijit/layout/ContentPane"
+         data-dojo-props="region:'center'" style="width:100%;height:100%">
+        <div style="position:absolute; right:20px; top:10px; z-Index:999;">
+            <!--<div id="titlePane" data-dojo-type="dijit/TitlePane" data-dojo-props="title:'测量工具', closable:true,open:false">
+                <div id="measurementDiv"></div>
+                <span style="font-size:smaller;padding:5px 5px;">Press <b>CTRL</b> to enable snapping.</span>
+            </div>-->
+            <div data-dojo-type="dijit.TitlePane" data-dojo-props="title:'管道管理', closable:false,open:false">
+                <div style="width:200px">
+                    <!--style="width:200px"-->
+                    <button class="btn btn-primary" id="query1">绘制管道</button>
+                    <button class="btn btn-primary" id="query2">绘制人井</button>
+                    <button class="btn btn-primary" id="query3">删除管线</button>
+                    <button class="btn btn-primary" id="query4">删除人井</button>
+                </div>
+            </div>
+            <div data-dojo-type="dijit.TitlePane" data-dojo-props="title:'查看详情', closable:false,open:false">
+                <div style="width:200px">
+                    <!--style="width:200px"-->
+                    <button class="btn btn-primary" id="query5">查看管道</button>
+                    <button class="btn btn-primary" id="query6">查看人井</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
